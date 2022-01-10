@@ -1,0 +1,57 @@
+name: 'Deploy a WebJob to Azure App Service'
+description: 'Deploy a WebJob to Azure App Service'
+inputs:
+  azure_credentials:
+    description: 'Azure Credentials, stored in a secret on your GitHub repository.'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Download Terraform output data
+      uses: actions/download-artifact@v2
+      with:
+        name: terraform-output
+    - name: Set environment variables
+      run: |
+        echo "APPLICATION_CAF_NAME=$(cat terraform-output.json | jq -r .application_caf_name.value)" >> $GITHUB_ENV
+        echo "RESOURCE_GROUP_NAME=$(cat terraform-output.json | jq -r .resource_group_name.value)" >> $GITHUB_ENV
+      shell: bash
+    - name: Download application package
+      uses: actions/download-artifact@v2
+      with:
+        name: package
+        path: app-package
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ inputs.azure_credentials }}
+    - name: Deploy WebJob to Azure App Service
+      env:
+        PACKAGE_PATH: app-package
+        APP_INSIGHTS_AGENT_URL: https://github.com/microsoft/ApplicationInsights-Java/releases/download/3.2.4/applicationinsights-agent-3.2.4.jar
+      run: |
+        $packagePath = '${{ env.PACKAGE_PATH }}'
+        $packageName = Get-ItemPropertyValue -Path $packagePath\*.jar -Name Name
+        $agentUrl = '${{ env.APP_INSIGHTS_AGENT_URL }}'
+        $webAppName = '${{ env.APPLICATION_CAF_NAME }}'
+        $resourceGroup = '${{ env.RESOURCE_GROUP_NAME }}'
+        $connectionString = az webapp config appsettings list -n $webAppName -g $resourceGroup --query "[?name=='APPLICATIONINSIGHTS_CONNECTION_STRING'].value" | ConvertFrom-Json
+        $webJobName = (Get-Culture).TextInfo.ToTitleCase(($packageName | Split-Path -LeafBase))
+
+        Invoke-WebRequest -Uri $agentUrl -OutFile "$packagePath/$($agentUrl | Split-Path -Leaf)"
+
+        @{ connectionString = $connectionString } | ConvertTo-Json | Set-Content -Path "$packagePath/applicationinsights.json"
+        @('set PATH=%PATH%;%JAVA_HOME%/bin', "java -Xmx1024m -javaagent:$($agentUrl | Split-Path -Leaf) -jar memphis.jar") | Set-Content -Path "$packagePath/run.bat"
+
+        if(Test-path "$packagePath.zip") {Remove-item "$packagePath.zip"}
+        [io.compression.zipfile]::CreateFromDirectory($packagePath, "$packagePath.zip")
+
+        $publishingCredentials = az webapp deployment list-publishing-credentials -n $webAppName -g $resourceGroup | ConvertFrom-Json
+        $basicAuthValue = "Basic {0}" -f [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $publishingCredentials.publishingUserName, $publishingCredentials.publishingPassword)))
+        $Headers = @{
+          Authorization = $basicAuthValue
+          "Content-Disposition" = "attachment; filename=run.bat"
+        }
+
+        Invoke-RestMethod -Uri https://$webAppName.scm.azurewebsites.net/api/continuouswebjobs/$webJobName -Headers $Headers -InFile "$packagePath.zip" -ContentType "application/zip" -Method Put
+      shell: pwsh
