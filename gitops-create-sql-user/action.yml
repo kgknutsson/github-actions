@@ -7,19 +7,20 @@ inputs:
   azure_credentials:
     description: 'Azure Credentials, stored in a secret on your GitHub repository.'
     required: true
-  server:
-    description: 'Specifies the name of a database server.'
-    required: true
-  database:
-    description: 'Specifies the name of a database.'
-    required: true
-  variable:
-    description: 'Script variables as string of space separated key-value pairs.'
-    required: false
-    default: ''
 runs:
   using: "composite"
   steps:
+    - name: Download Terraform output data
+      uses: actions/download-artifact@v2
+      with:
+        name: terraform-output
+    - name: Set environment variables
+      run: |
+        echo "APPLICATION_CAF_NAME=$(cat terraform-output.json | jq -r .application_caf_name.value)" >> $GITHUB_ENV
+        echo "SQL_SERVER_FQDN=$(cat terraform-output.json | jq -r .sql_server_fqdn.value)" >> $GITHUB_ENV
+        echo "SQL_DATABASE_NAME=$(cat terraform-output.json | jq -r .sql_database_name.value)" >> $GITHUB_ENV
+        echo "SQL_DATABASE_ROLE=$(cat terraform-output.json | jq -r .sql_database_role.value)" >> $GITHUB_ENV
+      shell: bash
     - name: Login to Azure
       uses: azure/login@v1
       with:
@@ -30,10 +31,10 @@ runs:
       with:
         inlineScript: |
           $body = @{
-            Server = '${{ inputs.server }}'
-            Database = '${{ inputs.database }}'
+            Server = '${{ env.SQL_SERVER_FQDN }}'
+            Database = '${{ env.SQL_DATABASE_NAME }}'
             AccessToken = (Get-AzAccessToken -ResourceUrl 'https://database.windows.net').Token
-            Variable = '${{ inputs.variable }}'
+            Variable = 'USER_NAME=${{ env.APPLICATION_CAF_NAME }} DB_ROLE=${{ env.SQL_DATABASE_ROLE }}'
           } | ConvertTo-Json
 
           Invoke-RestMethod -Method 'Post' -Uri '${{ inputs.http_endpoint }}' -Body $body
