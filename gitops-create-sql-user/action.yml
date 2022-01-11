@@ -1,0 +1,40 @@
+name: 'Create SQL user'
+description: 'Create SQL user'
+inputs:
+  http_endpoint:
+    description: 'The service endpoint responsible for handling the call.'
+    required: true
+  azure_credentials:
+    description: 'Azure Credentials, stored in a secret on your GitHub repository.'
+    required: true
+  server:
+    description: 'Specifies the name of a database server.'
+    required: true
+  database:
+    description: 'Specifies the name of a database.'
+    required: true
+  variable:
+    description: 'Script variables as string of space separated key-value pairs.'
+    required: false
+    default: ''
+runs:
+  using: "composite"
+  steps:
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ inputs.azure_credentials }}
+        enable-AzPSSession: true
+    - name: Run Azure PowerShell script
+      uses: azure/powershell@v1
+      with:
+        inlineScript: |
+          $body = @{
+            Server = '${{ inputs.server }}'
+            Database = '${{ inputs.database }}'
+            AccessToken = (Get-AzAccessToken -ResourceUrl 'https://database.windows.net').Token
+            Variable = '${{ inputs.variable }}'
+          } | ConvertTo-Json
+
+          Invoke-RestMethod -Method 'Post' -Uri '${{ inputs.http_endpoint }}' -Body $body
+        azPSVersion: "latest"
