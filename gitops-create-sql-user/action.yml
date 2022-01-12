@@ -35,7 +35,13 @@ runs:
             Database = '${{ env.SQL_DATABASE_NAME }}'
             AccessToken = (Get-AzAccessToken -ResourceUrl 'https://database.windows.net').Token
             Variable = 'USER_NAME=${{ env.APPLICATION_CAF_NAME }} DB_ROLE=${{ env.SQL_DATABASE_ROLE }}'
-          } | ConvertTo-Json
+          }
 
-          Invoke-RestMethod -Method 'Post' -Uri '${{ inputs.http_endpoint }}' -Body $body
+          $params = @{
+            Method = 'Post'
+            Uri = '${{ inputs.http_endpoint }}'
+            ContentType = 'application/json'
+          }
+
+          $body | ConvertTo-Json | Invoke-RestMethod @params
         azPSVersion: "latest"
