@@ -1,0 +1,12 @@
+name: Flyway Docker
+description: Run Flyway command using Official Flyway Docker image.
+inputs:
+  command:
+    description: Flyway command.
+    required: false
+    default: migrate
+runs:
+  using: docker
+  image: docker://flyway/flyway
+  args:
+    - ${{ inputs.command }}

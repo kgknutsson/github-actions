@@ -1,0 +1,23 @@
+name: Migrate SQL schema
+description: Migrate SQL schema with Flyway.
+inputs:
+  script-locations:
+    description: SQL script locations.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Download Terraform output data
+      uses: actions/download-artifact@v2
+      with:
+        name: terraform-output
+    - name: Set environment variables
+      run: |
+        echo "FLYWAY_URL=$(cat terraform-output.json | jq -r .database_jdbc_string.value)" >> $GITHUB_ENV
+      shell: bash
+    - name: Run flyway migrate
+      uses: kgknutsson/github-actions/flyway-docker@v1
+      env:
+        FLYWAY_LOCATIONS: filesystem:${{ inputs.script-locations }}
+      with:
+        command: migrate
