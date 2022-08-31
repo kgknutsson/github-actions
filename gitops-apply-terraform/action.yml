@@ -9,7 +9,7 @@ inputs:
     required: true
   application:
     description: 'The application being deployed.'
-    required: true
+    required: false
   environment:
     description: 'The target environment being deployed.'
     required: true
@@ -18,6 +18,11 @@ runs:
   steps:
     - name: Checkout code
       uses: actions/checkout@v2
+    - name: Get application name from config
+      id: getName
+      uses: mikefarah/yq@v4.27.3
+      with:
+        cmd: yq '.global.name' 'terraform/config.yml'
     - name: Set environment variables
       env:
         AZURE_CREDENTIALS: ${{ inputs.azure_credentials }}
@@ -37,7 +42,7 @@ runs:
       env:
         AZURE_CREDENTIALS: ${{ inputs.azure_credentials }}
         TF_STORAGE_ACCOUNT: ${{ inputs.tf_storage_account }}
-        APPLICATION: ${{ inputs.application }}
+        APPLICATION: ${{ steps.getName.outputs.result }}
         ENVIRONMENT: ${{ inputs.environment }}
       run: |
         export ARM_CLIENT_SECRET=$(echo $AZURE_CREDENTIALS | jq -r .clientSecret)
@@ -53,7 +58,7 @@ runs:
     - name: Apply Terraform
       env:
         AZURE_CREDENTIALS: ${{ inputs.azure_credentials }}
-        APPLICATION: ${{ inputs.application }}
+        APPLICATION: ${{ steps.getName.outputs.result }}
         ENVIRONMENT: ${{ inputs.environment }}
       run: |
         export ARM_CLIENT_SECRET=$(echo $AZURE_CREDENTIALS | jq -r .clientSecret)
