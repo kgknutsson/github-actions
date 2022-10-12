@@ -1,0 +1,37 @@
+name: 'Build'
+description: 'Build a Java project using Maven'
+inputs:
+  java-version:
+    description: 'The Java version'
+    required: false
+    default: '17'
+  build-command:
+    description: 'The command to build the Java project'
+    required: false
+    default: 'mvn --batch-mode --update-snapshots --no-transfer-progress package'
+  package-path:
+    description: 'The path to the generated package, to be uploaded on the last step'
+    required: false
+    default: '${{ github.workspace }}/target/*.[j,w]ar'
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout the repository
+      uses: actions/checkout@v3
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: temurin
+        java-version: ${{ inputs.java-version }}
+        check-latest: false
+        cache: maven
+    - name: Build with Maven
+      run: ${{ inputs.build-command }}
+      shell: bash
+    - name: Temporarily save package
+      uses: actions/upload-artifact@v3
+      if: inputs.package-path != ''
+      with:
+        name: package
+        path: ${{ inputs.package-path }}
+        retention-days: 1
