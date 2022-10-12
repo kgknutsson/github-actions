@@ -1,0 +1,42 @@
+name: 'Build'
+description: 'Build a Java project using Gradle'
+inputs:
+  java-version:
+    description: 'The Java version'
+    required: false
+    default: '17'
+  gradle-version:
+    description: Gradle version to use
+    required: false
+    default: 'current'
+  arguments:
+    description: Gradle command line arguments
+    required: false
+    default: 'check bootJar'
+  package-path:
+    description: 'The path to the generated package, to be uploaded on the last step'
+    required: false
+    default: '${{ github.workspace }}/build/libs/*.[j,w]ar'
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout the repository
+      uses: actions/checkout@v3
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: temurin
+        java-version: ${{ inputs.java-version }}
+        check-latest: false
+    - name: Setup and build with Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: ${{ inputs.gradle-version }}
+        arguments: ${{ inputs.arguments }}
+    - name: Temporarily save package
+      uses: actions/upload-artifact@v3
+      if: inputs.package-path != ''
+      with:
+        name: package
+        path: ${{ inputs.package-path }}
+        retention-days: 1
