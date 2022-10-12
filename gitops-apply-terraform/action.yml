@@ -17,7 +17,7 @@ runs:
   using: "composite"
   steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Get application name from config
       id: getName
       uses: mikefarah/yq@v4.27.3
@@ -78,7 +78,7 @@ runs:
       working-directory: '${{ github.workspace }}/terraform'
       shell: bash
     - name: Save Terraform output data
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: terraform-output
         path: '${{ github.workspace }}/terraform/terraform-output.json'

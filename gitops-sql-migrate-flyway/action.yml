@@ -8,9 +8,9 @@ runs:
   using: composite
   steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Download Terraform output data
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: terraform-output
     - name: Set environment variables
