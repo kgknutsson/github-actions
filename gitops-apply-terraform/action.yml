@@ -20,7 +20,7 @@ runs:
       uses: actions/checkout@v3
     - name: Get application name from config
       id: getName
-      uses: mikefarah/yq@v4.27.3
+      uses: mikefarah/yq@v4.30.4
       with:
         cmd: yq '.global.name' 'terraform/config.yml'
     - name: Set environment variables
