@@ -36,7 +36,7 @@ runs:
     - name: Deploy WebJob to Azure App Service
       env:
         PACKAGE_PATH: app-package
-        APP_INSIGHTS_AGENT_URL: https://github.com/microsoft/ApplicationInsights-Java/releases/download/3.2.11/applicationinsights-agent-3.2.11.jar
+        APP_INSIGHTS_AGENT_URL: https://github.com/microsoft/ApplicationInsights-Java/releases/download/3.4.4/applicationinsights-agent-3.4.4.jar
       run: |
         $packagePath = '${{ env.PACKAGE_PATH }}'
         $packageName = Get-ItemPropertyValue -Path $packagePath\*.jar -Name Name
