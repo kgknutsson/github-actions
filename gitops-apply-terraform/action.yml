@@ -1,15 +1,18 @@
 name: 'Apply Terraform configuration'
 description: 'Create or update the Azure infrastructure using Terraform.'
 inputs:
-  azure_credentials:
-    description: 'Azure Credentials, stored in a secret on your GitHub repository.'
+  client_id:
+    description: 'Client id of the application used for OIDC login.'
+    required: true
+  subscription_id:
+    description: 'Subscription id used for OIDC login.'
+    required: true
+  tenant_id:
+    description: 'Tenant id used for OIDC login.'
     required: true
   tf_storage_account:
     description: 'Terraform Storage Account, stored in a secret on your GitHub repository.'
     required: true
-  application:
-    description: 'The application being deployed.'
-    required: false
   environment:
     description: 'The target environment being deployed.'
     required: true
@@ -23,45 +26,44 @@ runs:
       uses: mikefarah/yq@v4.30.4
       with:
         cmd: yq '.global.name' 'terraform/config.yml'
-    - name: Set environment variables
-      env:
-        AZURE_CREDENTIALS: ${{ inputs.azure_credentials }}
-        TF_STORAGE_ACCOUNT: ${{ inputs.tf_storage_account }}
-      run: |
-        echo "ARM_CLIENT_ID=$(echo $AZURE_CREDENTIALS | jq -r .clientId)" >> $GITHUB_ENV
-        echo "ARM_SUBSCRIPTION_ID=$(echo $AZURE_CREDENTIALS | jq -r .subscriptionId)" >> $GITHUB_ENV
-        echo "ARM_TENANT_ID=$(echo $AZURE_CREDENTIALS | jq -r .tenantId)" >> $GITHUB_ENV
-        echo "TF_STORAGE_ACCOUNT_NAME=$(echo $TF_STORAGE_ACCOUNT | jq -r .accountName)" >> $GITHUB_ENV
-      shell: bash
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
       with:
-        terraform_version: 1.2.x
+        terraform_version: 1.3.x
         terraform_wrapper: false
     - name: Initialize Terraform
       env:
-        AZURE_CREDENTIALS: ${{ inputs.azure_credentials }}
+        ARM_CLIENT_ID: ${{ inputs.client_id }}
+        ARM_SUBSCRIPTION_ID: ${{ inputs.subscription_id }}
+        ARM_TENANT_ID: ${{ inputs.tenant_id }}
+        ARM_USE_OIDC: true
+        ARM_STORAGE_USE_AZUREAD: true
         TF_STORAGE_ACCOUNT: ${{ inputs.tf_storage_account }}
         APPLICATION: ${{ steps.getName.outputs.result }}
         ENVIRONMENT: ${{ inputs.environment }}
       run: |
-        export ARM_CLIENT_SECRET=$(echo $AZURE_CREDENTIALS | jq -r .clientSecret)
-        export TF_STORAGE_ACCOUNT_KEY=$(echo $TF_STORAGE_ACCOUNT | jq -r .accountKey)
+        export TF_STORAGE_ACCOUNT_SUBSCRIPTION=$(echo $TF_STORAGE_ACCOUNT | jq -r .accountSubscription)
+        export TF_STORAGE_ACCOUNT_RG=$(echo $TF_STORAGE_ACCOUNT | jq -r .accountRG)
+        export TF_STORAGE_ACCOUNT_NAME=$(echo $TF_STORAGE_ACCOUNT | jq -r .accountName)
         terraform init \
         -input=false \
+        -backend-config="subscription_id=$TF_STORAGE_ACCOUNT_SUBSCRIPTION" \
+        -backend-config="resource_group_name=$TF_STORAGE_ACCOUNT_RG" \
         -backend-config="storage_account_name=$TF_STORAGE_ACCOUNT_NAME" \
-        -backend-config="access_key=$TF_STORAGE_ACCOUNT_KEY" \
         -backend-config="container_name=tfstate" \
         -backend-config="key=rg-$APPLICATION-$ENVIRONMENT.terraform.tfstate"
       shell: bash
       working-directory: '${{ github.workspace }}/terraform'
     - name: Apply Terraform
       env:
-        AZURE_CREDENTIALS: ${{ inputs.azure_credentials }}
+        ARM_CLIENT_ID: ${{ inputs.client_id }}
+        ARM_SUBSCRIPTION_ID: ${{ inputs.subscription_id }}
+        ARM_TENANT_ID: ${{ inputs.tenant_id }}
+        ARM_USE_OIDC: true
+        ARM_STORAGE_USE_AZUREAD: true
         APPLICATION: ${{ steps.getName.outputs.result }}
         ENVIRONMENT: ${{ inputs.environment }}
       run: |
-        export ARM_CLIENT_SECRET=$(echo $AZURE_CREDENTIALS | jq -r .clientSecret)
         terraform apply \
         -input=false \
         -auto-approve \
@@ -71,9 +73,12 @@ runs:
       working-directory: '${{ github.workspace }}/terraform'
     - name: Get output data from Terraform
       env:
-        AZURE_CREDENTIALS: ${{ inputs.azure_credentials }}
+        ARM_CLIENT_ID: ${{ inputs.client_id }}
+        ARM_SUBSCRIPTION_ID: ${{ inputs.subscription_id }}
+        ARM_TENANT_ID: ${{ inputs.tenant_id }}
+        ARM_USE_OIDC: true
+        ARM_STORAGE_USE_AZUREAD: true
       run: |
-        export ARM_CLIENT_SECRET=$(echo $AZURE_CREDENTIALS | jq -r .clientSecret)
         echo $(terraform output -json) > terraform-output.json
       working-directory: '${{ github.workspace }}/terraform'
       shell: bash

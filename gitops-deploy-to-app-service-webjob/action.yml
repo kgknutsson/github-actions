@@ -1,8 +1,14 @@
 name: 'Deploy a WebJob to Azure App Service'
 description: 'Deploy a WebJob to Azure App Service'
 inputs:
-  azure_credentials:
-    description: 'Azure Credentials, stored in a secret on your GitHub repository.'
+  client_id:
+    description: 'Client id of the application used for OIDC login.'
+    required: true
+  subscription_id:
+    description: 'Subscription id used for OIDC login.'
+    required: true
+  tenant_id:
+    description: 'Tenant id used for OIDC login.'
     required: true
 runs:
   using: "composite"
@@ -24,7 +30,9 @@ runs:
     - name: Login to Azure
       uses: azure/login@v1
       with:
-        creds: ${{ inputs.azure_credentials }}
+        client-id: ${{ inputs.client_id }}
+        tenant-id: ${{ inputs.tenant_id }}
+        subscription-id: ${{ inputs.subscription_id }}
     - name: Deploy WebJob to Azure App Service
       env:
         PACKAGE_PATH: app-package
