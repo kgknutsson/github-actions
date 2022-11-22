@@ -61,9 +61,11 @@ runs:
         ARM_TENANT_ID: ${{ inputs.tenant_id }}
         ARM_USE_OIDC: true
         ARM_STORAGE_USE_AZUREAD: true
+        TF_STORAGE_ACCOUNT: ${{ inputs.tf_storage_account }}
         APPLICATION: ${{ steps.getName.outputs.result }}
         ENVIRONMENT: ${{ inputs.environment }}
       run: |
+        export TF_STORAGE_ACCOUNT_NAME=$(echo $TF_STORAGE_ACCOUNT | jq -r .accountName)
         terraform apply \
         -input=false \
         -auto-approve \
