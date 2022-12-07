@@ -33,33 +33,33 @@ runs:
         client-id: ${{ inputs.client_id }}
         tenant-id: ${{ inputs.tenant_id }}
         subscription-id: ${{ inputs.subscription_id }}
+        enable-AzPSSession: true
     - name: Deploy WebJob to Azure App Service
-      env:
-        PACKAGE_PATH: app-package
-        APP_INSIGHTS_AGENT_URL: https://github.com/microsoft/ApplicationInsights-Java/releases/download/3.4.4/applicationinsights-agent-3.4.4.jar
-      run: |
-        $packagePath = '${{ env.PACKAGE_PATH }}'
-        $packageName = Get-ItemPropertyValue -Path $packagePath\*.jar -Name Name
-        $agentUrl = '${{ env.APP_INSIGHTS_AGENT_URL }}'
-        $webAppName = '${{ env.APPLICATION_CAF_NAME }}'
-        $resourceGroup = '${{ env.RESOURCE_GROUP_NAME }}'
-        $connectionString = az webapp config appsettings list -n $webAppName -g $resourceGroup --query "[?name=='APPLICATIONINSIGHTS_CONNECTION_STRING'].value" | ConvertFrom-Json
-        $webJobName = (Get-Culture).TextInfo.ToTitleCase(($packageName | Split-Path -LeafBase))
+      uses: azure/powershell@v1
+      with:
+        inlineScript: |
+          $packagePath = 'app-package'
+          $packageName = Get-ItemPropertyValue -Path $packagePath\*.jar -Name Name
+          $agentUrl = 'https://github.com/microsoft/ApplicationInsights-Java/releases/download/3.4.4/applicationinsights-agent-3.4.4.jar'
+          $webAppName = '${{ env.APPLICATION_CAF_NAME }}'
+          $resourceGroup = '${{ env.RESOURCE_GROUP_NAME }}'
+          $connectionString = az webapp config appsettings list -n $webAppName -g $resourceGroup --query "[?name=='APPLICATIONINSIGHTS_CONNECTION_STRING'].value" | ConvertFrom-Json
+          $webJobName = (Get-Culture).TextInfo.ToTitleCase(($packageName | Split-Path -LeafBase))
 
-        Invoke-WebRequest -Uri $agentUrl -OutFile "$packagePath/$($agentUrl | Split-Path -Leaf)"
+          Invoke-WebRequest -Uri $agentUrl -OutFile "$packagePath/$($agentUrl | Split-Path -Leaf)"
 
-        @{ connectionString = $connectionString } | ConvertTo-Json | Set-Content -Path "$packagePath/applicationinsights.json"
-        @('set PATH=%PATH%;%JAVA_HOME%/bin', "java -Xmx1024m -javaagent:$($agentUrl | Split-Path -Leaf) -jar memphis.jar") | Set-Content -Path "$packagePath/run.bat"
+          @{ connectionString = $connectionString } | ConvertTo-Json | Set-Content -Path "$packagePath/applicationinsights.json"
+          @('set PATH=%PATH%;%JAVA_HOME%/bin', "java -Xmx1024m -javaagent:$($agentUrl | Split-Path -Leaf) -jar memphis.jar") | Set-Content -Path "$packagePath/run.bat"
 
-        if(Test-path "$packagePath.zip") {Remove-item "$packagePath.zip"}
-        [io.compression.zipfile]::CreateFromDirectory($packagePath, "$packagePath.zip")
+          if(Test-path "$packagePath.zip") {Remove-item "$packagePath.zip"}
+          [io.compression.zipfile]::CreateFromDirectory($packagePath, "$packagePath.zip")
 
-        $publishingCredentials = az webapp deployment list-publishing-credentials -n $webAppName -g $resourceGroup | ConvertFrom-Json
-        $basicAuthValue = "Basic {0}" -f [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $publishingCredentials.publishingUserName, $publishingCredentials.publishingPassword)))
-        $Headers = @{
-          Authorization = $basicAuthValue
-          "Content-Disposition" = "attachment; filename=run.bat"
-        }
+          $publishingCredentials = az webapp deployment list-publishing-credentials -n $webAppName -g $resourceGroup | ConvertFrom-Json
+          $basicAuthValue = "Basic {0}" -f [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $publishingCredentials.publishingUserName, $publishingCredentials.publishingPassword)))
+          $Headers = @{
+            Authorization = $basicAuthValue
+            "Content-Disposition" = "attachment; filename=run.bat"
+          }
 
-        Invoke-RestMethod -Uri https://$webAppName.scm.azurewebsites.net/api/continuouswebjobs/$webJobName -Headers $Headers -InFile "$packagePath.zip" -ContentType "application/zip" -Method Put
-      shell: pwsh
+          Invoke-RestMethod -Uri https://$webAppName.scm.azurewebsites.net/api/continuouswebjobs/$webJobName -Headers $Headers -InFile "$packagePath.zip" -ContentType "application/zip" -Method Put
+        azPSVersion: "latest"
