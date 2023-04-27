@@ -13,8 +13,12 @@ inputs:
     description: Gradle command line arguments
     required: false
     default: 'check bootJar'
+  package-name:
+    description: 'The artifact name for the uploaded package'
+    required: false
+    default: 'package'
   package-path:
-    description: 'The path to the generated package, to be uploaded on the last step'
+    description: 'The path to the package files to be uploaded'
     required: false
     default: '${{ github.workspace }}/build/libs/*.[j,w]ar'
 runs:
@@ -37,6 +41,6 @@ runs:
       uses: actions/upload-artifact@v3
       if: inputs.package-path != ''
       with:
-        name: package
+        name: ${{ inputs.package-name }}
         path: ${{ inputs.package-path }}
         retention-days: 1
