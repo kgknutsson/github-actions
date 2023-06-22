@@ -18,7 +18,7 @@ runs:
         echo "FLYWAY_URL=$(cat terraform-output.json | jq -r .database_jdbc_string.value)" >> $GITHUB_ENV
       shell: bash
     - name: Run flyway migrate
-      uses: kgknutsson/github-actions/flyway-docker@v1
+      uses: kgknutsson/github-actions/flyway-docker@v2
       env:
         FLYWAY_LOCATIONS: filesystem:${{ inputs.script-locations }}
       with:
