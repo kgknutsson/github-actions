@@ -7,6 +7,6 @@ inputs:
     default: migrate
 runs:
   using: docker
-  image: docker://flyway/flyway
+  image: docker://flyway/flyway:9.19
   args:
     - ${{ inputs.command }}
