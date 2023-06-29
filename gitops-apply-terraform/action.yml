@@ -23,7 +23,7 @@ runs:
       uses: actions/checkout@v3
     - name: Get application name from config
       id: getName
-      uses: mikefarah/yq@v4.30.4
+      uses: mikefarah/yq@v4.34.1
       with:
         cmd: yq '.global.name' 'terraform/config.yml'
     - name: Setup Terraform
