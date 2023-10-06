@@ -16,6 +16,10 @@ inputs:
   environment:
     description: 'The target environment being deployed.'
     required: true
+  working-directory:
+    description: 'Working directory where the terraform configuration can be found.'
+    required: false
+    default: 'terraform'
 runs:
   using: "composite"
   steps:
@@ -25,7 +29,7 @@ runs:
       id: getName
       uses: mikefarah/yq@v4.34.1
       with:
-        cmd: yq '.global.name' 'terraform/config.yml'
+        cmd: yq '.global.name' '${{ inputs.working-directory }}/config.yml'
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
       with:
@@ -53,7 +57,7 @@ runs:
         -backend-config="container_name=tfstate" \
         -backend-config="key=rg-$APPLICATION-$ENVIRONMENT.terraform.tfstate"
       shell: bash
-      working-directory: '${{ github.workspace }}/terraform'
+      working-directory: '${{ github.workspace }}/${{ inputs.working-directory }}'
     - name: Apply Terraform
       env:
         ARM_CLIENT_ID: ${{ inputs.client_id }}
@@ -72,7 +76,7 @@ runs:
         -var="terraform_storage_account=$TF_STORAGE_ACCOUNT_NAME" \
         -var="environment=$ENVIRONMENT"
       shell: bash
-      working-directory: '${{ github.workspace }}/terraform'
+      working-directory: '${{ github.workspace }}/${{ inputs.working-directory }}'
     - name: Get output data from Terraform
       env:
         ARM_CLIENT_ID: ${{ inputs.client_id }}
@@ -82,7 +86,7 @@ runs:
         ARM_STORAGE_USE_AZUREAD: true
       run: |
         echo $(terraform output -json) > terraform-output.json
-      working-directory: '${{ github.workspace }}/terraform'
+      working-directory: '${{ github.workspace }}/${{ inputs.working-directory }}'
       shell: bash
     - name: Save Terraform output data
       uses: actions/upload-artifact@v3
