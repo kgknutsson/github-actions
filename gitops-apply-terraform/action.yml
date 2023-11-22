@@ -33,7 +33,7 @@ runs:
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
       with:
-        terraform_version: 1.5.x
+        terraform_version: 1.6.x
         terraform_wrapper: false
     - name: Initialize Terraform
       env:
