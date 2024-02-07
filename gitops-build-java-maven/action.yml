@@ -17,19 +17,18 @@ runs:
   using: "composite"
   steps:
     - name: Checkout the repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Set up Java
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
-        distribution: temurin
+        distribution: microsoft
         java-version: ${{ inputs.java-version }}
-        check-latest: false
         cache: maven
     - name: Build with Maven
       run: ${{ inputs.build-command }}
       shell: bash
     - name: Temporarily save package
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: inputs.package-path != ''
       with:
         name: package

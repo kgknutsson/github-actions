@@ -14,7 +14,7 @@ runs:
   using: "composite"
   steps:
     - name: Download Terraform output data
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: terraform-output
     - name: Set environment variables
@@ -23,7 +23,7 @@ runs:
         echo "RESOURCE_GROUP_NAME=$(cat terraform-output.json | jq -r .resource_group_name.value)" >> $GITHUB_ENV
       shell: bash
     - name: Download application package
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: package
         path: app-package

@@ -24,16 +24,16 @@ runs:
   using: "composite"
   steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Get application name from config
       id: getName
-      uses: mikefarah/yq@v4.34.1
+      uses: mikefarah/yq@v4
       with:
         cmd: yq '.global.name' '${{ inputs.working-directory }}/config.yml'
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
+      uses: hashicorp/setup-terraform@v3
       with:
-        terraform_version: 1.6.x
+        terraform_version: ~1.7
         terraform_wrapper: false
     - name: Initialize Terraform
       env:
@@ -89,7 +89,7 @@ runs:
       working-directory: '${{ github.workspace }}/${{ inputs.working-directory }}'
       shell: bash
     - name: Save Terraform output data
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: terraform-output
         path: '${{ github.workspace }}/terraform/terraform-output.json'
