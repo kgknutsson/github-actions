@@ -1,20 +1,24 @@
 name: 'Build'
 description: 'Build a Java project using Gradle'
 inputs:
+  java-distribution:
+    description: 'Java distribution to use'
+    required: false
+    default: 'microsoft'
   java-version:
-    description: 'The Java version'
+    description: 'Java version to use'
     required: false
     default: '17'
   gradle-version:
     description: Gradle version to use
     required: false
-    default: 'current'
+    default: 'wrapper'
   arguments:
     description: Gradle command line arguments
     required: false
     default: 'check bootJar'
   package-name:
-    description: 'The artifact name for the uploaded package'
+    description: 'The name of the uploaded package'
     required: false
     default: 'package'
   package-path:
@@ -26,17 +30,21 @@ runs:
   steps:
     - name: Checkout the repository
       uses: actions/checkout@v4
-    - name: Set up Java
+    - name: Setup Java
       uses: actions/setup-java@v4
       with:
-        distribution: microsoft
+        distribution: ${{ inputs.java-distribution }}
         java-version: ${{ inputs.java-version }}
-    - name: Setup and build with Gradle
-      uses: gradle/gradle-build-action@v3
+    - name: Validate Gradle Wrapper
+      uses: gradle/actions/wrapper-validation@v3
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
       with:
         gradle-version: ${{ inputs.gradle-version }}
-        arguments: ${{ inputs.arguments }}
-    - name: Temporarily save package
+    - name: Execute Gradle build
+      run: ./gradlew ${{ inputs.arguments }}
+      shell: bash
+    - name: Upload package
       uses: actions/upload-artifact@v4
       if: inputs.package-path != ''
       with:
