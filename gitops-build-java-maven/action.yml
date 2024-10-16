@@ -13,6 +13,10 @@ inputs:
     description: 'The path to the generated package, to be uploaded on the last step'
     required: false
     default: '${{ github.workspace }}/target/*.[j,w]ar'
+  package-name:
+    description: 'The name of the package to be uploaded.'
+    required: false
+    default: 'package'
 runs:
   using: "composite"
   steps:
@@ -31,6 +35,6 @@ runs:
       uses: actions/upload-artifact@v4
       if: inputs.package-path != ''
       with:
-        name: package
+        name: ${{ inputs.package-name }}
         path: ${{ inputs.package-path }}
         retention-days: 1
