@@ -35,10 +35,8 @@ runs:
       with:
         distribution: ${{ inputs.java-distribution }}
         java-version: ${{ inputs.java-version }}
-    - name: Validate Gradle Wrapper
-      uses: gradle/actions/wrapper-validation@v3
     - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
+      uses: gradle/actions/setup-gradle@v4
       with:
         gradle-version: ${{ inputs.gradle-version }}
     - name: Execute Gradle build
