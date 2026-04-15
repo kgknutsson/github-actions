@@ -11,9 +11,8 @@ inputs:
     description: 'Tenant id used for OIDC login.'
     required: true
   tf_storage_account:
-    description: 'Terraform Storage Account JSON. Not required when using .tfbackend files.'
-    required: false
-    default: ''
+    description: 'Terraform Storage Account, stored in a secret on your GitHub repository.'
+    required: true
   environment:
     description: 'The target environment being deployed.'
     required: true
