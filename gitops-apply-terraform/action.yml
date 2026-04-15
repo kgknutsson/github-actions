@@ -46,7 +46,7 @@ runs:
         APPLICATION: ${{ steps.getName.outputs.result }}
         ENVIRONMENT: ${{ inputs.environment }}
       run: |
-        BACKEND_FILE="backend-$ENVIRONMENT.tfbackend"
+        BACKEND_FILE="$ENVIRONMENT.tfbackend"
         if [ -f "$BACKEND_FILE" ]; then
           echo "Using backend config file: $BACKEND_FILE"
           terraform init \
