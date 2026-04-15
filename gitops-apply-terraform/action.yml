@@ -75,43 +75,11 @@ runs:
         ARM_TENANT_ID: ${{ inputs.tenant_id }}
         ARM_USE_OIDC: true
         ARM_STORAGE_USE_AZUREAD: true
-        TF_STORAGE_ACCOUNT: ${{ inputs.tf_storage_account }}
-        APPLICATION: ${{ steps.getName.outputs.result }}
         ENVIRONMENT: ${{ inputs.environment }}
       run: |
-        BACKEND_FILE="backend-$ENVIRONMENT.tfbackend"
-        if [ -f "$BACKEND_FILE" ]; then
-          TF_STORAGE_ACCOUNT_NAME="$(
-            awk '
-              /^[[:space:]]*($|#|\/\/)/ { next }
-              match($0, /^[[:space:]]*storage_account_name[[:space:]]*=/) {
-                value = substr($0, RLENGTH + 1)
-                sub(/[[:space:]]*(#|\/\/).*$/, "", value)
-                gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
-                gsub(/^"/, "", value)
-                gsub(/"$/, "", value)
-                gsub(/^'\''/, "", value)
-                gsub(/'\''$/, "", value)
-                print value
-                exit
-              }
-            ' "$BACKEND_FILE"
-          )"
-          if [ -z "$TF_STORAGE_ACCOUNT_NAME" ]; then
-            echo "Error: storage_account_name is missing or empty in $BACKEND_FILE." >&2
-            exit 1
-          fi
-        else
-          if ! TF_STORAGE_ACCOUNT_NAME="$(printf '%s' "$TF_STORAGE_ACCOUNT" | jq -re '.accountName // empty')"; then
-            echo "Error: TF_STORAGE_ACCOUNT must be valid JSON with a non-empty accountName when $BACKEND_FILE is not present." >&2
-            exit 1
-          fi
-        fi
-        export TF_STORAGE_ACCOUNT_NAME
         terraform apply \
         -input=false \
         -auto-approve \
-        -var="terraform_storage_account=$TF_STORAGE_ACCOUNT_NAME" \
         -var="environment=$ENVIRONMENT"
       shell: bash
       working-directory: '${{ github.workspace }}/${{ inputs.working-directory }}'
