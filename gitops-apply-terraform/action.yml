@@ -94,7 +94,7 @@ runs:
       working-directory: '${{ github.workspace }}/${{ inputs.working-directory }}'
       shell: bash
     - name: Save Terraform output data
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: terraform-output
         path: '${{ github.workspace }}/terraform/terraform-output.json'
