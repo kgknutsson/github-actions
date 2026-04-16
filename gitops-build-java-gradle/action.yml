@@ -36,7 +36,7 @@ runs:
         distribution: ${{ inputs.java-distribution }}
         java-version: ${{ inputs.java-version }}
     - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v4
+      uses: gradle/actions/setup-gradle@v6
       with:
         gradle-version: ${{ inputs.gradle-version }}
     - name: Execute Gradle build
