@@ -46,16 +46,25 @@ runs:
         APPLICATION: ${{ steps.getName.outputs.result }}
         ENVIRONMENT: ${{ inputs.environment }}
       run: |
-        export TF_STORAGE_ACCOUNT_SUBSCRIPTION=$(echo $TF_STORAGE_ACCOUNT | jq -r .accountSubscription)
-        export TF_STORAGE_ACCOUNT_RG=$(echo $TF_STORAGE_ACCOUNT | jq -r .accountRG)
-        export TF_STORAGE_ACCOUNT_NAME=$(echo $TF_STORAGE_ACCOUNT | jq -r .accountName)
-        terraform init \
-        -input=false \
-        -backend-config="subscription_id=$TF_STORAGE_ACCOUNT_SUBSCRIPTION" \
-        -backend-config="resource_group_name=$TF_STORAGE_ACCOUNT_RG" \
-        -backend-config="storage_account_name=$TF_STORAGE_ACCOUNT_NAME" \
-        -backend-config="container_name=tfstate" \
-        -backend-config="key=rg-$APPLICATION-$ENVIRONMENT.terraform.tfstate"
+        BACKEND_FILE="$ENVIRONMENT.tfbackend"
+        if [ -f "$BACKEND_FILE" ]; then
+          echo "Using backend config file: $BACKEND_FILE"
+          terraform init \
+          -input=false \
+          -backend-config="$BACKEND_FILE"
+        else
+          echo "Using TF_STORAGE_ACCOUNT secret for backend config"
+          export TF_STORAGE_ACCOUNT_SUBSCRIPTION=$(echo $TF_STORAGE_ACCOUNT | jq -r .accountSubscription)
+          export TF_STORAGE_ACCOUNT_RG=$(echo $TF_STORAGE_ACCOUNT | jq -r .accountRG)
+          export TF_STORAGE_ACCOUNT_NAME=$(echo $TF_STORAGE_ACCOUNT | jq -r .accountName)
+          terraform init \
+          -input=false \
+          -backend-config="subscription_id=$TF_STORAGE_ACCOUNT_SUBSCRIPTION" \
+          -backend-config="resource_group_name=$TF_STORAGE_ACCOUNT_RG" \
+          -backend-config="storage_account_name=$TF_STORAGE_ACCOUNT_NAME" \
+          -backend-config="container_name=tfstate" \
+          -backend-config="key=rg-$APPLICATION-$ENVIRONMENT.terraform.tfstate"
+        fi
       shell: bash
       working-directory: '${{ github.workspace }}/${{ inputs.working-directory }}'
     - name: Apply Terraform
@@ -65,15 +74,11 @@ runs:
         ARM_TENANT_ID: ${{ inputs.tenant_id }}
         ARM_USE_OIDC: true
         ARM_STORAGE_USE_AZUREAD: true
-        TF_STORAGE_ACCOUNT: ${{ inputs.tf_storage_account }}
-        APPLICATION: ${{ steps.getName.outputs.result }}
         ENVIRONMENT: ${{ inputs.environment }}
       run: |
-        export TF_STORAGE_ACCOUNT_NAME=$(echo $TF_STORAGE_ACCOUNT | jq -r .accountName)
         terraform apply \
         -input=false \
         -auto-approve \
-        -var="terraform_storage_account=$TF_STORAGE_ACCOUNT_NAME" \
         -var="environment=$ENVIRONMENT"
       shell: bash
       working-directory: '${{ github.workspace }}/${{ inputs.working-directory }}'
