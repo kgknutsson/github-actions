@@ -12,3 +12,6 @@ updates:
       - "/gitops-build-java-maven"
     schedule:
       interval: "weekly"
+    groups:
+      github-actions:
+        group-by: dependency-name
