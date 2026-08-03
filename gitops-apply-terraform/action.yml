@@ -24,7 +24,7 @@ runs:
   using: "composite"
   steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Get application name from config
       id: getName
       uses: mikefarah/yq@v4
