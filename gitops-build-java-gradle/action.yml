@@ -31,7 +31,7 @@ runs:
     - name: Checkout the repository
       uses: actions/checkout@v6
     - name: Setup Java
-      uses: actions/setup-java@v5
+      uses: actions/setup-java@v6
       with:
         distribution: ${{ inputs.java-distribution }}
         java-version: ${{ inputs.java-version }}
