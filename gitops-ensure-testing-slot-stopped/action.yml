@@ -1,0 +1,80 @@
+name: Ensure App Service slot is stopped
+description: Stop a deployment slot and wait until Azure reports Stopped (or exit cleanly if missing when allowed).
+inputs:
+  app_name:
+    description: App Service name
+    required: true
+  resource_group:
+    description: Resource group name
+    required: true
+  slot_name:
+    description: Deployment slot name
+    required: true
+  allow_missing:
+    description: If true, exit 0 when the slot does not exist yet
+    required: false
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - name: Stop slot and wait for Stopped state
+      shell: bash
+      env:
+        APP_NAME: ${{ inputs.app_name }}
+        RESOURCE_GROUP: ${{ inputs.resource_group }}
+        SLOT_NAME: ${{ inputs.slot_name }}
+        ALLOW_MISSING: ${{ inputs.allow_missing }}
+      run: |
+        set -euo pipefail
+        error_file="$(mktemp)"
+        trap 'rm -f "$error_file"' EXIT
+
+        if [ "$ALLOW_MISSING" != "true" ] && [ "$ALLOW_MISSING" != "false" ]; then
+          echo "::error::allow_missing must be true or false"
+          exit 1
+        fi
+
+        if ! slot_state=$(az webapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --slot "$SLOT_NAME" --query state -o tsv 2>"$error_file"); then
+          if [ "$ALLOW_MISSING" = "true" ] && grep -qiE "ResourceNotFound|could not be found|does not exist" "$error_file"; then
+            parent_error="$(mktemp)"
+            if ! az webapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query name -o tsv >/dev/null 2>"$parent_error"; then
+              echo "::error::Parent app '$APP_NAME' in resource group '$RESOURCE_GROUP' was not found"
+              cat "$parent_error"
+              rm -f "$parent_error"
+              exit 1
+            fi
+            rm -f "$parent_error"
+            echo "Slot '$SLOT_NAME' for app '$APP_NAME' does not exist yet; Terraform may create it"
+            exit 0
+          fi
+          echo "::error::Failed to query slot '$SLOT_NAME' state for app '$APP_NAME'"
+          cat "$error_file"
+          exit 1
+        fi
+
+        if [ "$slot_state" = "Stopped" ]; then
+          echo "Slot '$SLOT_NAME' for app '$APP_NAME' is already Stopped"
+          exit 0
+        fi
+
+        if ! az webapp stop --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --slot "$SLOT_NAME" 2>"$error_file"; then
+          echo "::error::Failed to stop slot '$SLOT_NAME' for app '$APP_NAME'"
+          cat "$error_file"
+          exit 1
+        fi
+
+        for attempt in $(seq 1 12); do
+          if ! slot_state=$(az webapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --slot "$SLOT_NAME" --query state -o tsv 2>"$error_file"); then
+            echo "::error::Failed to query slot '$SLOT_NAME' state after the stop request"
+            cat "$error_file"
+            exit 1
+          fi
+          if [ "$slot_state" = "Stopped" ]; then
+            echo "Slot '$SLOT_NAME' for app '$APP_NAME' stopped successfully"
+            exit 0
+          fi
+          sleep 10
+        done
+
+        echo "::error::Slot '$SLOT_NAME' for app '$APP_NAME' did not reach Stopped state after the stop request"
+        exit 1
