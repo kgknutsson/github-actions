@@ -1,0 +1,12 @@
+#!/bin/sh
+if [ ! -f .denylist.local ]; then
+  echo "Missing .denylist.local. Create that file in this clone. Put one term on each line." >&2
+  exit 1
+fi
+export DENYLIST_FILE=".denylist.local"
+export DENYLIST_REQUIRED=true
+export SCAN_INDEX=true
+if command -v python3 >/dev/null 2>&1; then
+  exec python3 .github/scripts/scan-public-content.py
+fi
+exec python .github/scripts/scan-public-content.py
